@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Menu, X, Upload } from 'lucide-react';
 
 export default function SiteInspection() {
   const [isInitialized, setIsInitialized] = useState(false);
