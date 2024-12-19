@@ -2,6 +2,31 @@
 
 import React, { useState } from 'react';
 import { Menu, X, Upload } from 'lucide-react';
+import { renderPDFToCanvas, addPinToCanvas, exportAnnotationsToWord, annotationCategories } from './annotationUtils';
+
+const annotations = [];
+const canvas = document.getElementById('pdfCanvas');
+
+// Load a sample PDF (replace with your PDF file)
+const pdfData = 'path/to/your/pdf/file.pdf';
+renderPDFToCanvas(pdfData, canvas);
+
+// Handle Canvas Clicks for Markup
+canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    const selectedCategory = 'defect'; // Replace with category selection logic
+    addPinToCanvas(canvas, x, y, selectedCategory);
+
+    annotations.push({ category: selectedCategory, x, y, comment: '' });
+});
+
+// Export Annotations to Word
+document.getElementById('exportButton').addEventListener('click', () => {
+    exportAnnotationsToWord(annotations);
+});
 
 export default function SiteInspection() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -71,3 +96,5 @@ export default function SiteInspection() {
     </div>
   );
 }
+<canvas id="pdfCanvas" style="border: 1px solid black;"></canvas>
+<button id="exportButton">Export Annotations</button>
