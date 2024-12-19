@@ -1,7 +1,4 @@
-'use client';
-
-// Force new deployment - [current timestamp]
-import SiteInspection from './components/SiteInspection';
+import SiteInspection from '../components/site-inspection';
 
 export default function Home() {
   return <SiteInspection />;
