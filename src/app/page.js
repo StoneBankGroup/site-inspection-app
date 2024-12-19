@@ -1,3 +1,4 @@
+'use client';
 import React, { useState } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 import { AlertCircle, Upload, Download, Search, Filter, Menu, X, Plus, ChevronLeft, ZoomIn, ZoomOut } from 'lucide-react';
