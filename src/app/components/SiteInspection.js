@@ -1,100 +1,81 @@
-'use client';
-
 import React, { useState } from 'react';
-import { Menu, X, Upload } from 'lucide-react';
-import { renderPDFToCanvas, addPinToCanvas, exportAnnotationsToWord, annotationCategories } from './annotationUtils';
-
-const annotations = [];
-const canvas = document.getElementById('pdfCanvas');
-
-// Load a sample PDF (replace with your PDF file)
-const pdfData = 'path/to/your/pdf/file.pdf';
-renderPDFToCanvas(pdfData, canvas);
-
-// Handle Canvas Clicks for Markup
-canvas.addEventListener('click', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    const selectedCategory = 'defect'; // Replace with category selection logic
-    addPinToCanvas(canvas, x, y, selectedCategory);
-
-    annotations.push({ category: selectedCategory, x, y, comment: '' });
-});
-
-// Export Annotations to Word
-document.getElementById('exportButton').addEventListener('click', () => {
-    exportAnnotationsToWord(annotations);
-});
+import * as pdfjsLib from 'pdfjs-dist'; // Import PDF.js for PDF rendering
 
 export default function SiteInspection() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  
-  const handlePlanUpload = (e) => {
-    const files = Array.from(e.target.files);
-    console.log('Files selected:', files);
-    // We'll implement the full upload functionality next
+  const [errorMessage, setErrorMessage] = useState(null);
+
+  const handleFileChange = (event) => {
+    const file = event.target.files[0]; // Get the selected file
+
+    if (!file) {
+      setErrorMessage('No file selected!');
+      return;
+    }
+
+    // Check if it's a PDF
+    if (file.type === 'application/pdf') {
+      displayPDF(file);
+      setErrorMessage(null);
+    }
+    // Check if it's an image
+    else if (file.type.startsWith('image/')) {
+      displayImage(file);
+      setErrorMessage(null);
+    }
+    // Unsupported file type
+    else {
+      setErrorMessage('Please upload a valid PDF or image file.');
+    }
+  };
+
+  const displayPDF = (file) => {
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const pdfData = new Uint8Array(event.target.result);
+      const pdf = await pdfjsLib.getDocument(pdfData).promise;
+      const page = await pdf.getPage(1); // Render only the first page of the PDF
+      const viewport = page.getViewport({ scale: 1.0 });
+
+      const canvas = document.getElementById('fileDisplayCanvas');
+      const context = canvas.getContext('2d');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      page.render({ canvasContext: context, viewport });
+    };
+    reader.readAsArrayBuffer(file); // Read the file as binary
+  };
+
+  const displayImage = (file) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const canvas = document.getElementById('fileDisplayCanvas');
+      const context = canvas.getContext('2d');
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        context.drawImage(img, 0, 0);
+      };
+      img.src = event.target.result; // Load the image into the canvas
+    };
+    reader.readAsDataURL(file); // Read the file as a data URL
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top Bar */}
-      <div className="fixed top-0 left-0 right-0 bg-white border-b z-50 px-4 py-2">
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setIsMenuOpen(true)}
-            className="p-2"
-          >
-            <Menu className="w-6 h-6" />
-          </button>
-          <h1 className="font-semibold">Site Inspection App</h1>
-          <div className="w-10" /> {/* Spacer for alignment */}
-        </div>
-      </div>
+    <div>
+      <h1>Site Inspection File Upload</h1>
+      {/* File Input */}
+      <input type="file" id="fileInput" onChange={handleFileChange} />
+      
+      {/* Error Message */}
+      {errorMessage && <p style={{ color: 'red' }}>{errorMessage}</p>}
 
-      {/* Side Menu */}
-      {isMenuOpen && (
-        <div className="fixed inset-0 z-50">
-          <div 
-            className="absolute inset-0 bg-black opacity-50" 
-            onClick={() => setIsMenuOpen(false)}
-          />
-          <div className="absolute left-0 top-0 bottom-0 w-4/5 max-w-sm bg-white p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="font-semibold text-lg">Menu</h2>
-              <button onClick={() => setIsMenuOpen(false)}>
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            
-            <div className="space-y-4">
-              <label className="block">
-                <span className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-md">
-                  <Upload className="w-4 h-4" />
-                  Upload Plans
-                </span>
-                <input
-                  type="file"
-                  multiple
-                  accept="application/pdf"
-                  className="hidden"
-                  onChange={handlePlanUpload}
-                />
-              </label>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Main Content */}
-      <div className="pt-16 pb-20 p-4">
-        <p className="text-center text-gray-500">
-          Upload a plan to begin inspection
-        </p>
-      </div>
+      {/* Canvas to display the uploaded file */}
+      <canvas
+        id="fileDisplayCanvas"
+        style={{ border: '1px solid black', marginTop: '20px' }}
+      ></canvas>
     </div>
   );
 }
-<canvas id="pdfCanvas" style="border: 1px solid black;"></canvas>
-<button id="exportButton">Export Annotations</button>
